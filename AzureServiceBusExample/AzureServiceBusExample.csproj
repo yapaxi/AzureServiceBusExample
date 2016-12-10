@@ -57,6 +57,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Autofac\Autofac.cs" />
     <Compile Include="Bus\IMessageDestination.cs" />
     <Compile Include="Bus\IMessageSource.cs" />
     <Compile Include="Bus\MessageSubscription.cs" />
