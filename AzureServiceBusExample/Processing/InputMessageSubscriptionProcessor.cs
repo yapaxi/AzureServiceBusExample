@@ -9,22 +9,20 @@ using System.Threading.Tasks;
 
 namespace AzureServiceBusExample.Processing
 {
-    public class MessageProcessor<TInputMessage, TOutputMessage> : IMessageProcessor
+    public class InputMessageSubscriptionProcessor<TInputMessage, TMessageHandler> : IMessageProcessor
+        where TMessageHandler : IMessageHandler<TInputMessage>
     {
-        private readonly MessageQueue<TInputMessage> _inputQueue;
-        private readonly MessageQueue<TOutputMessage> _outputQueue;
+        private readonly MessageSubscription<TInputMessage> _subscription;
         private readonly CancellationToken _token;
-        private readonly IMessageHandler<TInputMessage, TOutputMessage> _handler;
+        private readonly TMessageHandler _handler;
         private readonly Task _completionTask;
 
-        public MessageProcessor(
-            IMessageHandler<TInputMessage, TOutputMessage> handler,
-            MessageQueue<TInputMessage> inputQueue,
-            MessageQueue<TOutputMessage> outputQueue,
+        public InputMessageSubscriptionProcessor(
+            TMessageHandler handler,
+            MessageSubscription<TInputMessage> subscription,
             CancellationTokenSource tokenSource)
         {
-            _inputQueue = inputQueue;
-            _outputQueue = outputQueue;
+            _subscription = subscription;
             _token = tokenSource.Token;
             _handler = handler;
 
@@ -53,17 +51,14 @@ namespace AzureServiceBusExample.Processing
         {
             while (!_token.IsCancellationRequested)
             {
-                using (var message = await _inputQueue.ReceiveMessage())
+                using (var message = await _subscription.ReceiveMessage())
                 {
                     Log($"received message: sn={message.SequenceNumber}");
 
                     var input = message.GetBody<TInputMessage>();
 
-                    var output = _handler.Handle(input);
-
-                    Log($"sent message to output: sn={message.SequenceNumber}");
-                    await _outputQueue.SendMesage(output);
-
+                    await _handler.Handle(input);
+                    
                     await message.CompleteAsync();
                     Log($"message is complete: sn={message.SequenceNumber}");
                 }
@@ -72,7 +67,7 @@ namespace AzureServiceBusExample.Processing
 
         private static void Log(string message)
         {
-            Console.WriteLine($"{typeof(TInputMessage).Name} -> {typeof(TOutputMessage).Name} processor: {message}");
+            Console.WriteLine($"{typeof(TInputMessage).Name} subscription processor: {message}");
         }
     }
 }

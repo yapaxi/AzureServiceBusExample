@@ -57,17 +57,32 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Bus\IMessageDestination.cs" />
+    <Compile Include="Bus\IMessageSource.cs" />
+    <Compile Include="Bus\MessageSubscription.cs" />
     <Compile Include="Bus\MessageQueue.cs" />
+    <Compile Include="Bus\Messages\IMessage.cs" />
+    <Compile Include="Bus\Messages\ITopicFilteredMessage.cs" />
     <Compile Include="Bus\Messages\OrderRequests\AmazonOrderRequest.cs" />
     <Compile Include="Bus\Messages\OrderRequests\JetOrderRequest.cs" />
     <Compile Include="Bus\Messages\OrderRequests\R1OrderRequest.cs" />
+    <Compile Include="Bus\Messages\ShippedOrder.cs" />
+    <Compile Include="Bus\MessageTopic.cs" />
     <Compile Include="Config\BusConfiguration.cs" />
+    <Compile Include="Processing\Handlers\JetShippedOrderHandler.cs" />
     <Compile Include="Processing\Handlers\IMessageHandler.cs" />
+    <Compile Include="Processing\Handlers\AmazonOrderRequestHandler.cs" />
     <Compile Include="Processing\Handlers\JetOrderRequestHandler.cs" />
+    <Compile Include="Processing\Handlers\R1OrderRequestHandler.cs" />
+    <Compile Include="Processing\Handlers\AmazonShippedOrderHandler.cs" />
     <Compile Include="Processing\IMessageProcessor.cs" />
-    <Compile Include="Processing\MessageProcessor.cs" />
+    <Compile Include="Processing\InputMessageSubscriptionProcessor.cs" />
+    <Compile Include="Processing\InputMessageQueueProcessor.cs" />
+    <Compile Include="Processing\InputOutputMessageQueueProcessor.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Storage\IStorage.cs" />
+    <Compile Include="Storage\Storage.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

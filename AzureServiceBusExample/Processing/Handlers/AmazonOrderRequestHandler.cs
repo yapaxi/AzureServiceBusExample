@@ -8,16 +8,16 @@ using System.Threading.Tasks;
 
 namespace AzureServiceBusExample.Processing.Handlers
 {
-    public class JetOrderRequestHandler : IMessageHandler<JetOrderRequest, R1OrderRequest>
+    public class AmazonOrderRequestHandler : IMessageHandler<AmazonOrderRequest, R1OrderRequest>
     {
-        public const string MarketplaceName = "Jet";
+        public const string MarketplaceName = "Amazon";
 
-        public async Task<R1OrderRequest> Handle(JetOrderRequest message)
+        public async Task<R1OrderRequest> Handle(AmazonOrderRequest message)
         {
-            Log($"handeled message body: {nameof(message.JetVenueOrderId)}={message.JetVenueOrderId}");
+            Log($"handeled message body: {nameof(message.AmazonVenueOrderId)}={message.AmazonVenueOrderId}");
             return new R1OrderRequest()
             {
-                VenueOrderId = message.JetVenueOrderId,
+                VenueOrderId = message.AmazonVenueOrderId,
                 MarketplaceName = MarketplaceName
             };
         }

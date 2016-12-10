@@ -6,8 +6,13 @@ using System.Threading.Tasks;
 
 namespace AzureServiceBusExample.Processing.Handlers
 {
-    public interface IMessageHandler<in TInputMessage, out TOutputMessage>
+    public interface IMessageHandler<in TInputMessage, TOutputMessage>
     {
-        TOutputMessage Handle(TInputMessage message);
+        Task<TOutputMessage> Handle(TInputMessage message);
+    }
+
+    public interface IMessageHandler<in TInputMessage>
+    {
+        Task Handle(TInputMessage message);
     }
 }

@@ -6,8 +6,10 @@ using System.Threading.Tasks;
 
 namespace AzureServiceBusExample.Bus.Messages.OrderRequests
 {
-    public class AmazonOrderRequest
+    public class AmazonOrderRequest : IMessage
     {
         public string AmazonVenueOrderId { get; set; }
+
+        public string Key => AmazonVenueOrderId;
     }
 }

@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace AzureServiceBusExample.Bus
 {
-    public class MessageQueue<TMessage>
+    public class MessageQueue<TMessage> : IMessageDestination<TMessage>, IMessageSource<TMessage>
     {
         private readonly QueueClient _client;
 

@@ -1,0 +1,72 @@
+﻿using AzureServiceBusExample.Bus;
+using AzureServiceBusExample.Processing.Handlers;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace AzureServiceBusExample.Processing
+{
+    public class InputMessageQueueProcessor<TInputMessage> : IMessageProcessor
+    {
+        private readonly MessageQueue<TInputMessage> _inputQueue;
+        private readonly CancellationToken _token;
+        private readonly IMessageHandler<TInputMessage> _handler;
+        private readonly Task _completionTask;
+
+        public InputMessageQueueProcessor(
+            IMessageHandler<TInputMessage> handler,
+            MessageQueue<TInputMessage> inputQueue,
+            CancellationTokenSource tokenSource)
+        {
+            _inputQueue = inputQueue;
+            _token = tokenSource.Token;
+            _handler = handler;
+
+            _completionTask = Task.Factory.StartNew(Run, tokenSource, TaskCreationOptions.LongRunning);
+        }
+
+        public Task Task => _completionTask;
+
+        private async Task Run(object state)
+        {
+            try
+            {
+                await RunInternal();
+            }
+            catch (AggregateException e)
+            {
+                Console.WriteLine(e.Flatten().ToString());
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+            }
+        }
+
+        private async Task RunInternal()
+        {
+            while (!_token.IsCancellationRequested)
+            {
+                using (var message = await _inputQueue.ReceiveMessage())
+                {
+                    Log($"received message: sn={message.SequenceNumber}");
+
+                    var input = message.GetBody<TInputMessage>();
+
+                    await _handler.Handle(input);
+                    
+                    await message.CompleteAsync();
+                    Log($"message is complete: sn={message.SequenceNumber}");
+                }
+            }
+        }
+
+        private static void Log(string message)
+        {
+            Console.WriteLine($"{typeof(TInputMessage).Name} processor: {message}");
+        }
+    }
+}
