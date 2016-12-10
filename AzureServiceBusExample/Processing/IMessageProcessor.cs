@@ -4,9 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace AzureServiceBusExample
+namespace AzureServiceBusExample.Processing
 {
-    public class Class1
+    public interface IMessageProcessor
     {
+        Task Task { get; }
     }
 }
