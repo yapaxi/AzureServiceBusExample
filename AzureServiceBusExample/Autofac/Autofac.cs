@@ -1,4 +1,5 @@
 ﻿using Autofac;
+using Autofac.Core;
 using AzureServiceBusExample.Bus;
 using AzureServiceBusExample.Bus.Messages;
 using AzureServiceBusExample.Bus.Messages.OrderRequests;
@@ -26,8 +27,11 @@ namespace AzureServiceBusExample.Autofac
             var busConnectionString = File.ReadAllText(Path.Combine(userProfile, ".connectionStrings", "bus.key"));
 
             var nsManager = NamespaceManager.CreateFromConnectionString(busConnectionString);
-
+            
             var builder = new ContainerBuilder();
+
+            builder.Register(e => MessagingFactory.CreateFromConnectionString(busConnectionString))
+                .SingleInstance();
 
             RegisterMessageQueue<AmazonOrderRequest>(busConnectionString, nsManager, builder);
             RegisterMessageQueue<JetOrderRequest>(busConnectionString, nsManager, builder);
@@ -79,7 +83,9 @@ namespace AzureServiceBusExample.Autofac
                 nsManager.DeleteQueue(type.FullName);
                 nsManager.CreateQueue(type.FullName);
             }
-            builder.Register(e => new MessageQueue<TMessage>(QueueClient.CreateFromConnectionString(busConnectionString, type.FullName)))
+
+            builder.RegisterType<MessageQueue<TMessage>>()
+                .SingleInstance()
                 .As<IMessageDestination<TMessage>>()
                 .As<IMessageSource<TMessage>>()
                 .AsSelf();
@@ -91,7 +97,7 @@ namespace AzureServiceBusExample.Autofac
             where TMessage : ITopicFilteredMessage
         {
             var type = typeof(TMessage);
-            var propertyName = GetSelectorPropertyName(selector);
+            var filterPropertyName = GetSelectorPropertyName(selector);
             if (!nsManager.TopicExists(type.FullName))
             {
                 Console.WriteLine($"Creating topic for {typeof(TMessage).Name}");
@@ -103,8 +109,10 @@ namespace AzureServiceBusExample.Autofac
                 nsManager.DeleteTopic(type.FullName);
                 nsManager.CreateTopic(type.FullName);
             }
-
-            builder.Register(e => new MessageTopic<TMessage>(propertyName, TopicClient.CreateFromConnectionString(busConnectionString, type.FullName)))
+            
+            builder.RegisterType<MessageTopic<TMessage>>()
+                .WithParameter(new TypedParameter(typeof(string), filterPropertyName))
+                .SingleInstance()
                 .As<IMessageDestination<TMessage>>()
                 .AsSelf();
         }
@@ -114,31 +122,36 @@ namespace AzureServiceBusExample.Autofac
             NamespaceManager nsManager,
             ContainerBuilder builder,
             Expression<Func<TMessage, string>> selector,
-            string value)
+            string filterValue)
             where THandler : IMessageHandler<TMessage>
         {
             var topicName = typeof(TMessage).FullName;
             var propertyName = GetSelectorPropertyName(selector);
-            var filter = new SqlFilter($"{propertyName} = '{value}'");
+            var filter = new SqlFilter($"{propertyName} = '{filterValue}'");
 
-            if (nsManager.SubscriptionExists(topicName, value))
+            if (nsManager.SubscriptionExists(topicName, filterValue))
             {
-                nsManager.DeleteSubscription(topicName, value);
+                nsManager.DeleteSubscription(topicName, filterValue);
             }
 
-            Console.WriteLine($"Creating route to {topicName} for {value}");
-            nsManager.CreateSubscription(topicName, value, filter);
+            Console.WriteLine($"Creating route to {topicName} for {filterValue}");
+            nsManager.CreateSubscription(topicName, filterValue, filter);
 
-            builder.Register(e => new MessageSubscription<TMessage>(SubscriptionClient.CreateFromConnectionString(busConnectionString, topicName, value)))
-                .Named<MessageSubscription<TMessage>>(value)
+            builder
+                .RegisterType<MessageSubscription<TMessage>>()
+                .WithParameter(new TypedParameter(typeof(string), filterValue))
+                .Named<MessageSubscription<TMessage>>(filterValue)
+                .SingleInstance()
                 .As<IMessageSource<TMessage>>()
                 .AsSelf();
 
             builder.Register(e => new InputMessageSubscriptionProcessor<TMessage, THandler>(
                 handler: e.Resolve<THandler>(),
-                subscription: e.ResolveNamed<MessageSubscription<TMessage>>(value),
+                subscription: e.ResolveNamed<MessageSubscription<TMessage>>(filterValue),
                 tokenSource: e.Resolve<CancellationTokenSource>()
-            )).As<IMessageProcessor>();
+            ))
+            .SingleInstance()
+            .As<IMessageProcessor>();
         }
 
         private static string GetSelectorPropertyName<TMessage>(Expression<Func<TMessage, string>> selector)

@@ -11,11 +11,13 @@ namespace AzureServiceBusExample.Bus
     public class MessageQueue<TMessage> : IMessageDestination<TMessage>, IMessageSource<TMessage>
     {
         private readonly QueueClient _client;
+        private readonly MessagingFactory _factory;
 
-        public MessageQueue(QueueClient client)
+        public MessageQueue(MessagingFactory factory)
         {
             Log("created");
-            _client = client;
+            _factory = factory;
+            _client = factory.CreateQueueClient(typeof(TMessage).FullName);
         }
 
         public async Task SendMesage(TMessage message)

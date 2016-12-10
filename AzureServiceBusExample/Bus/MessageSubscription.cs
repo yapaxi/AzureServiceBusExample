@@ -11,10 +11,12 @@ namespace AzureServiceBusExample.Bus
     public class MessageSubscription<TMessage> : IMessageSource<TMessage>
     {
         private readonly SubscriptionClient _client;
+        private readonly MessagingFactory _factory;
 
-        public MessageSubscription(SubscriptionClient client)
+        public MessageSubscription(MessagingFactory factory, string filterValue)
         {
-            _client = client;
+            _client = factory.CreateSubscriptionClient(typeof(TMessage).FullName, filterValue);
+            _factory = factory;
             Log("created");
         }
 

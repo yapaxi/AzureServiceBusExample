@@ -14,11 +14,13 @@ namespace AzureServiceBusExample.Bus
     {
         private readonly string _filterName;
         private readonly TopicClient _client;
+        private readonly MessagingFactory _factory;
 
-        public MessageTopic(string filterName, TopicClient client)
+        public MessageTopic(MessagingFactory factory, string filterName)
         {
             _filterName = filterName;
-            _client = client;
+            _client = factory.CreateTopicClient(typeof(TMessage).FullName);
+            _factory = factory;
             Log("created");
         }
 
