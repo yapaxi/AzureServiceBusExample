@@ -9,6 +9,7 @@ namespace AzureServiceBusExample.Bus.Clients
 {
     public interface IMessageSource<out TMessage>
     {
-        Task<BrokeredMessage> ReceiveMessage();
+        Task<BrokeredMessage> ReceiveMessageAsync(TimeSpan timeout = default(TimeSpan));
+        Task<BrokeredMessage> ReceiveMessage(long sequenceNumber);
     }
 }

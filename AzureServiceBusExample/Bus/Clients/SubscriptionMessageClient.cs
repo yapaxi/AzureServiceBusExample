@@ -19,9 +19,14 @@ namespace AzureServiceBusExample.Bus.Clients
             _client = factory.CreateSubscriptionClient(ns.ResolvePath<TMessage>(), filterValue);
         }
 
-        public Task<BrokeredMessage> ReceiveMessage()
+        public Task<BrokeredMessage> ReceiveMessage(long sequenceNumber)
         {
-            return _client.ReceiveAsync();
+            return _client.ReceiveAsync(sequenceNumber);
+        }
+
+        public Task<BrokeredMessage> ReceiveMessageAsync(TimeSpan timeout = default(TimeSpan))
+        {
+            return timeout == default(TimeSpan) ? _client.ReceiveAsync() : _client.ReceiveAsync(timeout);
         }
     }
 }

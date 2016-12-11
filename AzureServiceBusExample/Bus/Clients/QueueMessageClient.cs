@@ -25,9 +25,26 @@ namespace AzureServiceBusExample.Bus.Clients
             return _client.SendAsync(new BrokeredMessage(message));
         }
 
-        public Task<BrokeredMessage> ReceiveMessage()
+        public Task SendMesageAsync(BrokeredMessage message)
         {
-            return _client.ReceiveAsync();
+            return _client.SendAsync(message);
+        }
+
+        public void SendMesage(BrokeredMessage message)
+        {
+            _client.Send(message);
+        }
+
+        public Task<BrokeredMessage> ReceiveMessageAsync(TimeSpan timeout = default(TimeSpan))
+        {
+            return timeout == default(TimeSpan)
+                    ? _client.ReceiveAsync()
+                    : _client.ReceiveAsync(timeout);
+        }
+
+        public Task<BrokeredMessage> ReceiveMessage(long sequenceNumber)
+        {
+            return _client.ReceiveAsync(sequenceNumber);
         }
     }
 }

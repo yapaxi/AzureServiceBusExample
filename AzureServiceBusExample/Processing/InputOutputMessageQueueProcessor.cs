@@ -54,7 +54,7 @@ namespace AzureServiceBusExample.Processing
         {
             while (!_token.IsCancellationRequested)
             {
-                using (var message = await _inputQueue.ReceiveMessage())
+                using (var message = await _inputQueue.ReceiveMessageAsync())
                 {
                     Log($"received message: sn={message.SequenceNumber}");
 

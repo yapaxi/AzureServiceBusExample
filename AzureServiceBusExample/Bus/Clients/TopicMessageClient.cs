@@ -29,5 +29,15 @@ namespace AzureServiceBusExample.Bus.Clients
             m.Properties[_filterPropertyName] = message.FilterValue;
             return _client.SendAsync(m);
         }
+
+        public Task SendMesageAsync(BrokeredMessage message)
+        {
+            return _client.SendAsync(message);
+        }
+
+        public void SendMesage(BrokeredMessage message)
+        {
+            _client.Send(message);
+        }
     }
 }

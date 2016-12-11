@@ -52,7 +52,7 @@ namespace AzureServiceBusExample.Processing
         {
             while (!_token.IsCancellationRequested)
             {
-                using (var message = await _subscription.ReceiveMessage())
+                using (var message = await _subscription.ReceiveMessageAsync())
                 {
                     Log($"received message: sn={message.SequenceNumber}");
 
