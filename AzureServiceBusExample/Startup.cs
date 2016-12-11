@@ -69,7 +69,7 @@ namespace AzureServiceBusExample
             var amazon = _container.Resolve<QueueMessageClient<AmazonOrderRequest>>();
             var rnd = new Random((int)DateTime.Now.Ticks);
 
-            for (int i = 0; i < 1000; i++)
+            for (int i = 0; i < 10; i++)
             {
                 if (_killAllTokenSource.IsCancellationRequested)
                 {
@@ -91,6 +91,8 @@ namespace AzureServiceBusExample
 
                 Thread.Sleep(100);
             }
+
+            _killAllTokenSource.Cancel();
         }
 
         public async Task ShipOrders()

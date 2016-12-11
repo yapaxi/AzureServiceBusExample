@@ -27,7 +27,7 @@ namespace AzureServiceBusExample
     {
         static Program()
         {
-            _container = new AutofacBuilder("global").Build();
+            _container = new AutofacBuilder(rootNamespace: "global").Build();
             _killAllTokenSource = _container.Resolve<CancellationTokenSource>();
             _startup = new Startup(_container);
         }
@@ -45,7 +45,7 @@ namespace AzureServiceBusExample
             Task.WaitAll
             (
                 _startup.RunProcessors(),
-                _startup.PollMarketplaces().ContinueWith(e => _killAllTokenSource.Cancel()),
+                _startup.PollMarketplaces(),
                 _startup.ShipOrders()
             );
 

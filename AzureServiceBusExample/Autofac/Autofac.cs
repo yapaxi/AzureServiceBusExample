@@ -26,7 +26,7 @@ namespace AzureServiceBusExample.Autofac
         private readonly ContainerBuilder _builder;
         private readonly EnvironmentNamespaceManager _envNS;
 
-        public AutofacBuilder(string parentNamespace)
+        public AutofacBuilder(string rootNamespace)
         {
             _builder = new ContainerBuilder();
 
@@ -34,7 +34,7 @@ namespace AzureServiceBusExample.Autofac
             var busConnectionString = File.ReadAllText(Path.Combine(userProfile, ".connectionStrings", "bus.key"));
             
             _builder.Register(e => MessagingFactory.CreateFromConnectionString(busConnectionString)).SingleInstance();
-            _builder.RegisterInstance(_envNS = new EnvironmentNamespaceManager(parentNamespace));
+            _builder.RegisterInstance(_envNS = new EnvironmentNamespaceManager(rootNamespace));
             _builder.RegisterInstance(NamespaceManager.CreateFromConnectionString(busConnectionString));
         }
 

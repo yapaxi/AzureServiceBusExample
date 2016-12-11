@@ -8,12 +8,12 @@ namespace AzureServiceBusExample.Bus
 {
     public class EnvironmentNamespaceManager
     {
-        public EnvironmentNamespaceManager(string parentNamespace)
+        public EnvironmentNamespaceManager(string rootNamespace)
         {
-            ParentNamespace = parentNamespace;
+            RootNamespace = rootNamespace;
         }
 
-        public string ParentNamespace { get; }
+        public string RootNamespace { get; }
 
         public string ResolvePath<T>()
         {
@@ -22,7 +22,7 @@ namespace AzureServiceBusExample.Bus
 
         public string ResolvePath(Type t)
         {
-            return $"{ParentNamespace}.{t.FullName}";
+            return $"{RootNamespace}.{t.FullName}";
         }
     }
 }
