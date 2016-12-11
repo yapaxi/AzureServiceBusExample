@@ -70,7 +70,7 @@
     <Compile Include="Bus\Messages\OrderRequests\R1OrderRequest.cs" />
     <Compile Include="Bus\Messages\ShippedOrders\ShippedOrder.cs" />
     <Compile Include="Bus\Clients\TopicMessageClient.cs" />
-    <Compile Include="CloudManager.cs" />
+    <Compile Include="Startup.cs" />
     <Compile Include="Processing\Handlers\JetShippedOrderHandler.cs" />
     <Compile Include="Processing\Handlers\IMessageHandler.cs" />
     <Compile Include="Processing\Handlers\AmazonOrderRequestHandler.cs" />
