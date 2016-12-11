@@ -2,7 +2,6 @@
 using Autofac.Core;
 using AzureServiceBusExample.Bus;
 using AzureServiceBusExample.Bus.Clients;
-using AzureServiceBusExample.Bus.Definitions;
 using AzureServiceBusExample.Bus.Messages;
 using AzureServiceBusExample.Bus.Messages.OrderRequests;
 using AzureServiceBusExample.Bus.Messages.ShippedOrders;
@@ -25,6 +24,7 @@ namespace AzureServiceBusExample.Autofac
     public class AutofacBuilder
     {
         private readonly ContainerBuilder _builder;
+        private readonly EnvironmentNamespaceManager _envNS;
 
         public AutofacBuilder(string parentNamespace)
         {
@@ -34,7 +34,7 @@ namespace AzureServiceBusExample.Autofac
             var busConnectionString = File.ReadAllText(Path.Combine(userProfile, ".connectionStrings", "bus.key"));
             
             _builder.Register(e => MessagingFactory.CreateFromConnectionString(busConnectionString)).SingleInstance();
-            _builder.RegisterInstance(new EnvironmentNamespaceManager(parentNamespace));
+            _builder.RegisterInstance(_envNS = new EnvironmentNamespaceManager(parentNamespace));
             _builder.RegisterInstance(NamespaceManager.CreateFromConnectionString(busConnectionString));
         }
 
@@ -74,7 +74,7 @@ namespace AzureServiceBusExample.Autofac
 
         private void RegisterQueue<TMessage>()
         {
-            _builder.RegisterInstance(new QueueDefinition() { Type = typeof(TMessage) });
+            _builder.RegisterInstance(new QueueDescription(_envNS.ResolvePath<TMessage>()));
 
             _builder.RegisterType<QueueMessageClient<TMessage>>()
                 .SingleInstance()
@@ -86,7 +86,7 @@ namespace AzureServiceBusExample.Autofac
         private void RegisterTopic<TMessage>(Expression<Func<TMessage, string>> selector)
             where TMessage : ITopicFilteredMessage
         {
-            _builder.RegisterInstance(new TopicDefinition() { Type = typeof(TMessage) });
+            _builder.RegisterInstance(new TopicDescription(_envNS.ResolvePath<TMessage>()));
 
             var filterPropertyName = GetSelectorPropertyName(selector);
 
@@ -100,11 +100,9 @@ namespace AzureServiceBusExample.Autofac
         private void SubscribeOnTopic<TSubscriptionsHandler, TTopicMessage>(Expression<Func<TTopicMessage, string>> selector, string filterValue)
             where TSubscriptionsHandler : IMessageHandler<TTopicMessage>
         {
-            _builder.RegisterInstance(new SubscriptionDefinition() {
-                Type = typeof(TTopicMessage),
-                Name = filterValue,
-                Filter = new SqlFilter($"{GetSelectorPropertyName(selector)} = '{filterValue}'")
-            });
+            _builder.RegisterInstance(new Tuple<SubscriptionDescription, SqlFilter>(
+                new SubscriptionDescription(_envNS.ResolvePath<TTopicMessage>(), filterValue),
+                new SqlFilter($"{GetSelectorPropertyName(selector)} = '{filterValue}'")));
 
             _builder
                 .RegisterType<SubscriptionMessageClient<TTopicMessage>>()

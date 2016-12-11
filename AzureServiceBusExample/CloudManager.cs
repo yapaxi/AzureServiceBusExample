@@ -1,7 +1,7 @@
 ﻿using Autofac;
 using AzureServiceBusExample.Bus;
-using AzureServiceBusExample.Bus.Definitions;
 using Microsoft.ServiceBus;
+using Microsoft.ServiceBus.Messaging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,68 +29,67 @@ namespace AzureServiceBusExample
         {
             Console.WriteLine("[CloudManager] Creating cloud service bus objects");
             
-            foreach (var s in _container.Resolve<IEnumerable<QueueDefinition>>())
+            foreach (var s in _container.Resolve<IEnumerable<QueueDescription>>())
             {
                 CreateQueue(s);
             }
 
-            foreach (var s in _container.Resolve<IEnumerable<TopicDefinition>>())
+            foreach (var s in _container.Resolve<IEnumerable<TopicDescription>>())
             {
                 CreateTopic(s);
             }
 
-            foreach (var s in _container.Resolve<IEnumerable<SubscriptionDefinition>>())
+            foreach (var s in _container.Resolve<IEnumerable<Tuple<SubscriptionDescription, SqlFilter>>>())
             {
                 CreateSubscription(s);
             }
         }
 
-        private void CreateSubscription(SubscriptionDefinition s)
+        private void CreateSubscription(Tuple<SubscriptionDescription, SqlFilter> s)
         {
-            var path = _envNS.ResolvePath(s.Type);
-
-            if (!_globalNS.SubscriptionExists(path, s.Name))
+            var path = s.Item1.TopicPath;
+            if (!_globalNS.SubscriptionExists(path, s.Item1.Name))
             {
-                Console.WriteLine($"[CloudManager] Creating route to {path} for {s.Name}");
-                _globalNS.CreateSubscription(path, s.Name, s.Filter);
+                Console.WriteLine($"[CloudManager] Creating route to {path} for {s.Item1.Name}");
+                _globalNS.CreateSubscription(s.Item1, s.Item2);
             }
             else if (_recreateObjects)
             {
-                Console.WriteLine($"[CloudManager] Recreating route to {path} for {s.Name}");
-                _globalNS.DeleteSubscription(path, s.Name);
-                _globalNS.CreateSubscription(path, s.Name, s.Filter);
+                Console.WriteLine($"[CloudManager] Recreating route to {path} for {s.Item1.Name}");
+                _globalNS.DeleteSubscription(path, s.Item1.Name);
+                _globalNS.CreateSubscription(s.Item1, s.Item2);
             }
         }
 
-        private void CreateTopic(TopicDefinition s)
+        private void CreateTopic(TopicDescription s)
         {
-            var path = _envNS.ResolvePath(s.Type);
+            var path = s.Path;
             if (!_globalNS.TopicExists(path))
             {
-                Console.WriteLine($"[CloudManager] Creating topic for {s.Type.Name}");
-                _globalNS.CreateTopic(path);
+                Console.WriteLine($"[CloudManager] Creating topic for {path}");
+                _globalNS.CreateTopic(s);
             }
             else if (_recreateObjects)
             {
-                Console.WriteLine($"[CloudManager] Recreating topic for {s.Type.Name}");
+                Console.WriteLine($"[CloudManager] Recreating topic for {path}");
                 _globalNS.DeleteTopic(path);
-                _globalNS.CreateTopic(path);
+                _globalNS.CreateTopic(s);
             }
         }
 
-        private void CreateQueue(QueueDefinition s)
+        private void CreateQueue(QueueDescription s)
         {
-            var path = _envNS.ResolvePath(s.Type);
+            var path = s.Path;
             if (!_globalNS.QueueExists(path))
             {
-                Console.WriteLine($"[CloudManager] Creating queue for {s.Type.Name}");
-                _globalNS.CreateQueue(path);
+                Console.WriteLine($"[CloudManager] Creating queue for {path}");
+                _globalNS.CreateQueue(s);
             }
             else if (_recreateObjects)
             {
-                Console.WriteLine($"[CloudManager] Recreating queue for {s.Type.Name}");
+                Console.WriteLine($"[CloudManager] Recreating queue for {path}");
                 _globalNS.DeleteQueue(path);
-                _globalNS.CreateQueue(path);
+                _globalNS.CreateQueue(s);
             }
         }
     }

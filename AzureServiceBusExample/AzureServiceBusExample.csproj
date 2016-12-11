@@ -58,9 +58,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Autofac\Autofac.cs" />
-    <Compile Include="Bus\Definitions\QueueDefinition.cs" />
-    <Compile Include="Bus\Definitions\SubscriptionDefinition.cs" />
-    <Compile Include="Bus\Definitions\TopicDefinition.cs" />
     <Compile Include="Bus\EnvironmentNamespaceManager.cs" />
     <Compile Include="Bus\Clients\IMessageDestination.cs" />
     <Compile Include="Bus\Clients\IMessageSource.cs" />

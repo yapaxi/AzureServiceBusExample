@@ -3,7 +3,6 @@ using Autofac.Core;
 using AzureServiceBusExample.Autofac;
 using AzureServiceBusExample.Bus;
 using AzureServiceBusExample.Bus.Clients;
-using AzureServiceBusExample.Bus.Definitions;
 using AzureServiceBusExample.Bus.Messages;
 using AzureServiceBusExample.Bus.Messages.OrderRequests;
 using AzureServiceBusExample.Bus.Messages.ShippedOrders;
