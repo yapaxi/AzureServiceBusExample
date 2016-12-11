@@ -58,18 +58,22 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Autofac\Autofac.cs" />
-    <Compile Include="Bus\IMessageDestination.cs" />
-    <Compile Include="Bus\IMessageSource.cs" />
-    <Compile Include="Bus\MessageSubscription.cs" />
-    <Compile Include="Bus\MessageQueue.cs" />
+    <Compile Include="Bus\Definitions\QueueDefinition.cs" />
+    <Compile Include="Bus\Definitions\SubscriptionDefinition.cs" />
+    <Compile Include="Bus\Definitions\TopicDefinition.cs" />
+    <Compile Include="Bus\EnvironmentNamespaceManager.cs" />
+    <Compile Include="Bus\Clients\IMessageDestination.cs" />
+    <Compile Include="Bus\Clients\IMessageSource.cs" />
+    <Compile Include="Bus\Clients\SubscriptionMessageClient.cs" />
+    <Compile Include="Bus\Clients\QueueMessageClient.cs" />
     <Compile Include="Bus\Messages\IMessage.cs" />
     <Compile Include="Bus\Messages\ITopicFilteredMessage.cs" />
     <Compile Include="Bus\Messages\OrderRequests\AmazonOrderRequest.cs" />
     <Compile Include="Bus\Messages\OrderRequests\JetOrderRequest.cs" />
     <Compile Include="Bus\Messages\OrderRequests\R1OrderRequest.cs" />
-    <Compile Include="Bus\Messages\ShippedOrder.cs" />
-    <Compile Include="Bus\MessageTopic.cs" />
-    <Compile Include="Config\BusConfiguration.cs" />
+    <Compile Include="Bus\Messages\ShippedOrders\ShippedOrder.cs" />
+    <Compile Include="Bus\Clients\TopicMessageClient.cs" />
+    <Compile Include="CloudManager.cs" />
     <Compile Include="Processing\Handlers\JetShippedOrderHandler.cs" />
     <Compile Include="Processing\Handlers\IMessageHandler.cs" />
     <Compile Include="Processing\Handlers\AmazonOrderRequestHandler.cs" />

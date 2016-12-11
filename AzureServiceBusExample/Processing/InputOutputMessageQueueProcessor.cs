@@ -1,4 +1,5 @@
 ﻿using AzureServiceBusExample.Bus;
+using AzureServiceBusExample.Bus.Clients;
 using AzureServiceBusExample.Processing.Handlers;
 using System;
 using System.Collections.Generic;

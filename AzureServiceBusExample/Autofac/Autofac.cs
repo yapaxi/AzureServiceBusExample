@@ -1,8 +1,11 @@
 ﻿using Autofac;
 using Autofac.Core;
 using AzureServiceBusExample.Bus;
+using AzureServiceBusExample.Bus.Clients;
+using AzureServiceBusExample.Bus.Definitions;
 using AzureServiceBusExample.Bus.Messages;
 using AzureServiceBusExample.Bus.Messages.OrderRequests;
+using AzureServiceBusExample.Bus.Messages.ShippedOrders;
 using AzureServiceBusExample.Processing;
 using AzureServiceBusExample.Processing.Handlers;
 using AzureServiceBusExample.Storages;
@@ -19,135 +22,101 @@ using System.Threading.Tasks;
 
 namespace AzureServiceBusExample.Autofac
 {
-    public static class AutofacBuilder
+    public class AutofacBuilder
     {
-        public static IContainer Build()
+        private readonly ContainerBuilder _builder;
+
+        public AutofacBuilder(string parentNamespace)
         {
+            _builder = new ContainerBuilder();
+
             var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             var busConnectionString = File.ReadAllText(Path.Combine(userProfile, ".connectionStrings", "bus.key"));
-
-            var nsManager = NamespaceManager.CreateFromConnectionString(busConnectionString);
             
-            var builder = new ContainerBuilder();
-
-            builder.Register(e => MessagingFactory.CreateFromConnectionString(busConnectionString))
-                .SingleInstance();
-
-            RegisterMessageQueue<AmazonOrderRequest>(busConnectionString, nsManager, builder);
-            RegisterMessageQueue<JetOrderRequest>(busConnectionString, nsManager, builder);
-            RegisterMessageQueue<R1OrderRequest>(busConnectionString, nsManager, builder);
-            RegisterMessageTopic<ShippedOrder>(busConnectionString, nsManager, builder, e => e.MarketplaceName);
-
-            CreateSubscriptionByPropertyValue<ShippedOrder, AmazonShippedOrderHandler>(
-                busConnectionString, nsManager, builder,
-                e => e.MarketplaceName, AmazonOrderRequestHandler.MarketplaceName);
-
-            CreateSubscriptionByPropertyValue<ShippedOrder, JetShippedOrderHandler>(
-                busConnectionString, nsManager, builder,
-                e => e.MarketplaceName, JetOrderRequestHandler.MarketplaceName);
-
-            // mm -> r1
-            builder.RegisterType<AmazonOrderRequestHandler>().As<IMessageHandler<AmazonOrderRequest, R1OrderRequest>>();
-            builder.RegisterType<JetOrderRequestHandler>().As<IMessageHandler<JetOrderRequest, R1OrderRequest>>();
-            builder.RegisterType<InputOutputMessageQueueProcessor<AmazonOrderRequest, R1OrderRequest>>().As<IMessageProcessor>();
-            builder.RegisterType<InputOutputMessageQueueProcessor<JetOrderRequest, R1OrderRequest>>().As<IMessageProcessor>();
-
-            // r1 -> r1
-            builder.RegisterType<R1OrderRequestHandler>().As<IMessageHandler<R1OrderRequest>>();
-            builder.RegisterType<InputMessageQueueProcessor<R1OrderRequest>>().As<IMessageProcessor>();
-
-            // r1 -> marketplace
-            builder.RegisterType<AmazonShippedOrderHandler>();
-            builder.RegisterType<JetShippedOrderHandler>();
-
-            builder.RegisterInstance(new Storage()).As<IStorage>();
-
-            var killAllTokenSource = new CancellationTokenSource();
-
-            builder.RegisterInstance(killAllTokenSource);
-
-            return builder.Build();
+            _builder.Register(e => MessagingFactory.CreateFromConnectionString(busConnectionString)).SingleInstance();
+            _builder.RegisterInstance(new EnvironmentNamespaceManager(parentNamespace));
+            _builder.RegisterInstance(NamespaceManager.CreateFromConnectionString(busConnectionString));
         }
 
-        private static void RegisterMessageQueue<TMessage>(string busConnectionString, NamespaceManager nsManager, ContainerBuilder builder)
+        public IContainer Build()
         {
-            var type = typeof(TMessage);
-            if (!nsManager.QueueExists(type.FullName))
-            {
-                Console.WriteLine($"Creating queue for {typeof(TMessage).Name}");
-                nsManager.CreateQueue(type.FullName);
-            }
-            else
-            {
-                Console.WriteLine($"Recreating queue for {typeof(TMessage).Name}");
-                nsManager.DeleteQueue(type.FullName);
-                nsManager.CreateQueue(type.FullName);
-            }
+            // input queues for marketplace order requests
+            RegisterQueue<AmazonOrderRequest>();
+            RegisterQueue<JetOrderRequest>();
+            RegisterQueue<R1OrderRequest>();
 
-            builder.RegisterType<MessageQueue<TMessage>>()
+            _builder.RegisterType<AmazonOrderRequestHandler>().As<IMessageHandler<AmazonOrderRequest, R1OrderRequest>>();
+            _builder.RegisterType<JetOrderRequestHandler>().As<IMessageHandler<JetOrderRequest, R1OrderRequest>>();
+
+            // mm -> r1
+            _builder.RegisterType<InputOutputMessageQueueProcessor<AmazonOrderRequest, R1OrderRequest>>().As<IMessageProcessor>();
+            _builder.RegisterType<InputOutputMessageQueueProcessor<JetOrderRequest, R1OrderRequest>>().As<IMessageProcessor>();
+
+            // r1 -> *
+            _builder.RegisterType<R1OrderRequestHandler>().As<IMessageHandler<R1OrderRequest>>();
+            _builder.RegisterType<InputMessageQueueProcessor<R1OrderRequest>>().As<IMessageProcessor>();
+
+            RegisterTopic<ShippedOrder>(e => e.MarketplaceName);
+
+            // r1 -> marketplace
+            _builder.RegisterType<AmazonShippedOrderHandler>();
+            _builder.RegisterType<JetShippedOrderHandler>();
+
+            SubscribeOnTopic<AmazonShippedOrderHandler, ShippedOrder>(e => e.MarketplaceName, AmazonOrderRequestHandler.MarketplaceName);
+            SubscribeOnTopic<JetShippedOrderHandler, ShippedOrder>(e => e.MarketplaceName, JetOrderRequestHandler.MarketplaceName);
+
+            // other
+            _builder.RegisterInstance(new Storage()).As<IStorage>();
+            _builder.RegisterInstance(new CancellationTokenSource());
+
+            return _builder.Build();
+        }
+
+        private void RegisterQueue<TMessage>()
+        {
+            _builder.RegisterInstance(new QueueDefinition() { Type = typeof(TMessage) });
+
+            _builder.RegisterType<QueueMessageClient<TMessage>>()
                 .SingleInstance()
                 .As<IMessageDestination<TMessage>>()
                 .As<IMessageSource<TMessage>>()
                 .AsSelf();
         }
 
-        private static void RegisterMessageTopic<TMessage>(
-            string busConnectionString, NamespaceManager nsManager, ContainerBuilder builder,
-            Expression<Func<TMessage, string>> selector)
+        private void RegisterTopic<TMessage>(Expression<Func<TMessage, string>> selector)
             where TMessage : ITopicFilteredMessage
         {
-            var type = typeof(TMessage);
+            _builder.RegisterInstance(new TopicDefinition() { Type = typeof(TMessage) });
+
             var filterPropertyName = GetSelectorPropertyName(selector);
-            if (!nsManager.TopicExists(type.FullName))
-            {
-                Console.WriteLine($"Creating topic for {typeof(TMessage).Name}");
-                nsManager.CreateTopic(type.FullName);
-            }
-            else
-            {
-                Console.WriteLine($"Recreating topic for {typeof(TMessage).Name}");
-                nsManager.DeleteTopic(type.FullName);
-                nsManager.CreateTopic(type.FullName);
-            }
-            
-            builder.RegisterType<MessageTopic<TMessage>>()
+
+            _builder.RegisterType<TopicMessageClient<TMessage>>()
                 .WithParameter(new TypedParameter(typeof(string), filterPropertyName))
                 .SingleInstance()
                 .As<IMessageDestination<TMessage>>()
                 .AsSelf();
         }
 
-        private static void CreateSubscriptionByPropertyValue<TMessage, THandler>(
-            string busConnectionString,
-            NamespaceManager nsManager,
-            ContainerBuilder builder,
-            Expression<Func<TMessage, string>> selector,
-            string filterValue)
-            where THandler : IMessageHandler<TMessage>
+        private void SubscribeOnTopic<TSubscriptionsHandler, TTopicMessage>(Expression<Func<TTopicMessage, string>> selector, string filterValue)
+            where TSubscriptionsHandler : IMessageHandler<TTopicMessage>
         {
-            var topicName = typeof(TMessage).FullName;
-            var propertyName = GetSelectorPropertyName(selector);
-            var filter = new SqlFilter($"{propertyName} = '{filterValue}'");
+            _builder.RegisterInstance(new SubscriptionDefinition() {
+                Type = typeof(TTopicMessage),
+                Name = filterValue,
+                Filter = new SqlFilter($"{GetSelectorPropertyName(selector)} = '{filterValue}'")
+            });
 
-            if (nsManager.SubscriptionExists(topicName, filterValue))
-            {
-                nsManager.DeleteSubscription(topicName, filterValue);
-            }
-
-            Console.WriteLine($"Creating route to {topicName} for {filterValue}");
-            nsManager.CreateSubscription(topicName, filterValue, filter);
-
-            builder
-                .RegisterType<MessageSubscription<TMessage>>()
+            _builder
+                .RegisterType<SubscriptionMessageClient<TTopicMessage>>()
                 .WithParameter(new TypedParameter(typeof(string), filterValue))
-                .Named<MessageSubscription<TMessage>>(filterValue)
+                .Named<SubscriptionMessageClient<TTopicMessage>>(filterValue)
                 .SingleInstance()
-                .As<IMessageSource<TMessage>>()
+                .As<IMessageSource<TTopicMessage>>()
                 .AsSelf();
 
-            builder.Register(e => new InputMessageSubscriptionProcessor<TMessage, THandler>(
-                handler: e.Resolve<THandler>(),
-                subscription: e.ResolveNamed<MessageSubscription<TMessage>>(filterValue),
+            _builder.Register(e => new InputMessageSubscriptionProcessor<TTopicMessage, TSubscriptionsHandler>(
+                handler: e.Resolve<TSubscriptionsHandler>(),
+                subscription: e.ResolveNamed<SubscriptionMessageClient<TTopicMessage>>(filterValue),
                 tokenSource: e.Resolve<CancellationTokenSource>()
             ))
             .SingleInstance()

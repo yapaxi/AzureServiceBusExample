@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace AzureServiceBusExample.Bus
+namespace AzureServiceBusExample.Bus.Clients
 {
     public interface IMessageSource<out TMessage>
     {

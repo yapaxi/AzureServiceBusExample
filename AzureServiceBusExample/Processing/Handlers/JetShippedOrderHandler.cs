@@ -1,4 +1,5 @@
 ﻿using AzureServiceBusExample.Bus.Messages;
+using AzureServiceBusExample.Bus.Messages.ShippedOrders;
 using System;
 using System.Collections.Generic;
 using System.Linq;

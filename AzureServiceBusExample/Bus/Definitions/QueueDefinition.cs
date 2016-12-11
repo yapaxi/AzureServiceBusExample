@@ -4,10 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace AzureServiceBusExample.Bus
+namespace AzureServiceBusExample.Bus.Definitions
 {
-    public interface IMessageDestination<in TMessage>
+    public class QueueDefinition
     {
-        Task SendMesage(TMessage message);
+        public Type Type { get; set; }
     }
 }

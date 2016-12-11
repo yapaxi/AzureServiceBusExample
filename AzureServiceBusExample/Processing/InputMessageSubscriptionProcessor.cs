@@ -1,4 +1,5 @@
 ﻿using AzureServiceBusExample.Bus;
+using AzureServiceBusExample.Bus.Clients;
 using AzureServiceBusExample.Processing.Handlers;
 using System;
 using System.Collections.Generic;
@@ -12,14 +13,14 @@ namespace AzureServiceBusExample.Processing
     public class InputMessageSubscriptionProcessor<TInputMessage, TMessageHandler> : IMessageProcessor
         where TMessageHandler : IMessageHandler<TInputMessage>
     {
-        private readonly MessageSubscription<TInputMessage> _subscription;
+        private readonly SubscriptionMessageClient<TInputMessage> _subscription;
         private readonly CancellationToken _token;
         private readonly TMessageHandler _handler;
         private readonly Task _completionTask;
 
         public InputMessageSubscriptionProcessor(
             TMessageHandler handler,
-            MessageSubscription<TInputMessage> subscription,
+            SubscriptionMessageClient<TInputMessage> subscription,
             CancellationTokenSource tokenSource)
         {
             _subscription = subscription;
