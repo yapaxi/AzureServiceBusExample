@@ -38,7 +38,7 @@ namespace Tests
         }
 
         [TestMethod]
-        public async Task CompleteMessageNeverReturns()
+        public async Task COMPLETE_MESSAGE_NEVER_RETURNS()
         {
             var key = Guid.NewGuid().ToString();
             await _jetOrderRequests1.SendMesage(new JetOrderRequest() { JetVenueOrderId = key });
@@ -53,7 +53,7 @@ namespace Tests
         }
 
         [TestMethod]
-        public async Task DeferedMessageCanBeTakenAgain()
+        public async Task DEFERED_MESSAGE_CAN_BE_TAKEN_AGAIN_WITH_SEQUENCE_NUMBER()
         {
             var key = Guid.NewGuid().ToString();
             await _jetOrderRequests1.SendMesage(new JetOrderRequest() { JetVenueOrderId = key });
@@ -68,7 +68,7 @@ namespace Tests
         }
 
         [TestMethod]
-        public async Task CompleteCloneAndResend()
+        public async Task COMPLETE_CLONE_AND_RESEND()
         {
             var key = Guid.NewGuid().ToString();
             await _jetOrderRequests1.SendMesage(new JetOrderRequest() { JetVenueOrderId = key });
@@ -87,7 +87,30 @@ namespace Tests
         }
 
         [TestMethod]
-        public async Task CompleteAndResendCloneInUncommittedTransaction()
+        public async Task COMPLETE_CLONE_AND_RESEND_WITH_SCHEDUED_ENQUEUE_TIME()
+        {
+            var key = Guid.NewGuid().ToString();
+            await _jetOrderRequests1.SendMesage(new JetOrderRequest() { JetVenueOrderId = key });
+
+            var message = await _jetOrderRequests1.ReceiveMessageAsync();
+            Assert.AreEqual(key, message.GetBody<JetOrderRequest>().JetVenueOrderId);
+            var clone = message.Clone();
+            clone.ScheduledEnqueueTimeUtc = DateTime.UtcNow.AddSeconds(30);
+            clone.Properties["resendId"] = 1;
+            await message.CompleteAsync();
+            await _jetOrderRequests1.SendMesageAsync(clone);
+            
+            message = await _jetOrderRequests2.ReceiveMessageAsync(TimeSpan.FromSeconds(15));
+            Assert.IsNull(message);
+
+            message = await _jetOrderRequests2.ReceiveMessageAsync();
+            Assert.AreEqual(key, message.GetBody<JetOrderRequest>().JetVenueOrderId);
+            Assert.AreEqual(1, message.Properties["resendId"]);
+            await message.CompleteAsync();
+        }
+
+        [TestMethod]
+        public async Task COMPLETE_AND_RESEND_CLONE_IN_ROLLBACKED_TRANSACTION()
         {
             var key = Guid.NewGuid().ToString();
             await _jetOrderRequests1.SendMesage(new JetOrderRequest() { JetVenueOrderId = key });
