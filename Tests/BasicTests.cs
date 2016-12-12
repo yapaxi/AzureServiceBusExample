@@ -13,7 +13,7 @@ using System.Transactions;
 namespace Tests
 {
     [TestClass]
-    public class UnitTest1
+    public class BasicTests
     {
         private static IContainer _container;
         private static Startup _startup;
@@ -23,7 +23,12 @@ namespace Tests
         [ClassInitialize]
         public static void Init(TestContext context)
         {
-            _container = new AutofacBuilder(rootNamespace: typeof(UnitTest1).FullName).Build();
+            _container = new AutofacBuilder(
+                busConnectionString: Program.GetConnectionString(),
+                rootNamespace: typeof(BasicTests).FullName,
+                cloudEntityAutoDeleteOnIdle: TimeSpan.FromHours(1)
+            ).Build();
+
             _startup = new Startup(_container);
             _startup.CreateRegisteredServiceBusObjects(recreateObjects: true);
             _jetOrderRequests1 = CreateClient();
@@ -68,7 +73,7 @@ namespace Tests
         }
 
         [TestMethod]
-        public async Task COMPLETE_CLONE_AND_RESEND()
+        public async Task COMPLETE_AND_RESEND_CLONE()
         {
             var key = Guid.NewGuid().ToString();
             await _jetOrderRequests1.SendMesage(new JetOrderRequest() { JetVenueOrderId = key });
@@ -87,7 +92,7 @@ namespace Tests
         }
 
         [TestMethod]
-        public async Task COMPLETE_CLONE_AND_RESEND_WITH_SCHEDUED_ENQUEUE_TIME()
+        public async Task COMPLETE_AND_RESEND_CLONE_WITH_SCHEDUED_ENQUEUE_TIME()
         {
             var key = Guid.NewGuid().ToString();
             await _jetOrderRequests1.SendMesage(new JetOrderRequest() { JetVenueOrderId = key });

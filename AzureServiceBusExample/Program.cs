@@ -27,7 +27,10 @@ namespace AzureServiceBusExample
     {
         static Program()
         {
-            _container = new AutofacBuilder(rootNamespace: "global").Build();
+            _container = new AutofacBuilder(
+                busConnectionString: GetConnectionString(),
+                rootNamespace: "global"
+             ).Build();
             _killAllTokenSource = _container.Resolve<CancellationTokenSource>();
             _startup = new Startup(_container);
         }
@@ -56,6 +59,13 @@ namespace AzureServiceBusExample
         {
             _killAllTokenSource.Cancel();
             e.Cancel = true;
+        }
+        
+        public static string GetConnectionString()
+        {
+            var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            var busConnectionString = File.ReadAllText(Path.Combine(userProfile, ".connectionStrings", "bus.key"));
+            return busConnectionString;
         }
     }
 }

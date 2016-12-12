@@ -29,7 +29,9 @@ namespace AzureServiceBusExample
             _killAllTokenSource = _container.Resolve<CancellationTokenSource>();
         }
 
-        public void CreateRegisteredServiceBusObjects(bool recreateObjects)
+        public void CreateRegisteredServiceBusObjects(
+            bool recreateObjects,
+            TimeSpan autoRemoveTimeout = default(TimeSpan))
         {
             var current = Console.ForegroundColor;
 
@@ -39,17 +41,17 @@ namespace AzureServiceBusExample
 
             foreach (var s in _container.Resolve<IEnumerable<QueueDescription>>())
             {
-                CreateQueue(s, recreateObjects);
+                CreateQueue(s, recreateObjects, autoRemoveTimeout);
             }
 
             foreach (var s in _container.Resolve<IEnumerable<TopicDescription>>())
             {
-                CreateTopic(s, recreateObjects);
+                CreateTopic(s, recreateObjects, autoRemoveTimeout);
             }
 
             foreach (var s in _container.Resolve<IEnumerable<Tuple<SubscriptionDescription, SqlFilter>>>())
             {
-                CreateSubscription(s, recreateObjects);
+                CreateSubscription(s, recreateObjects, autoRemoveTimeout);
             }
 
             Console.ForegroundColor = ConsoleColor.Yellow;
@@ -121,7 +123,7 @@ namespace AzureServiceBusExample
             }
         }
 
-        private void CreateSubscription(Tuple<SubscriptionDescription, SqlFilter> s, bool recreateObjects)
+        private void CreateSubscription(Tuple<SubscriptionDescription, SqlFilter> s, bool recreateObjects, TimeSpan autoRemoveTimeout)
         {
             var path = s.Item1.TopicPath;
             if (!_globalNS.SubscriptionExists(path, s.Item1.Name))
@@ -141,7 +143,7 @@ namespace AzureServiceBusExample
             }
         }
 
-        private void CreateTopic(TopicDescription s, bool recreateObjects)
+        private void CreateTopic(TopicDescription s, bool recreateObjects, TimeSpan autoRemoveTimeout)
         {
             var path = s.Path;
             if (!_globalNS.TopicExists(path))
@@ -161,7 +163,7 @@ namespace AzureServiceBusExample
             }
         }
 
-        private void CreateQueue(QueueDescription s, bool recreateObjects)
+        private void CreateQueue(QueueDescription s, bool recreateObjects, TimeSpan autoRemoveTimeout)
         {
             var path = s.Path;
             if (!_globalNS.QueueExists(path))

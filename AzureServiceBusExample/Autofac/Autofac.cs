@@ -25,14 +25,13 @@ namespace AzureServiceBusExample.Autofac
     {
         private readonly ContainerBuilder _builder;
         private readonly EnvironmentNamespaceManager _envNS;
+        private readonly TimeSpan? _cloudEntityAutoDeleteOnIdle;
 
-        public AutofacBuilder(string rootNamespace)
+        public AutofacBuilder(string busConnectionString, string rootNamespace, TimeSpan? cloudEntityAutoDeleteOnIdle = null)
         {
             _builder = new ContainerBuilder();
+            _cloudEntityAutoDeleteOnIdle = cloudEntityAutoDeleteOnIdle;
 
-            var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            var busConnectionString = File.ReadAllText(Path.Combine(userProfile, ".connectionStrings", "bus.key"));
-            
             _builder.Register(e => MessagingFactory.CreateFromConnectionString(busConnectionString)).SingleInstance();
             _builder.RegisterInstance(_envNS = new EnvironmentNamespaceManager(rootNamespace));
             _builder.RegisterInstance(NamespaceManager.CreateFromConnectionString(busConnectionString));
@@ -74,7 +73,10 @@ namespace AzureServiceBusExample.Autofac
 
         private void RegisterQueue<TMessage>()
         {
-            _builder.RegisterInstance(new QueueDescription(_envNS.ResolvePath<TMessage>()));
+            _builder.RegisterInstance(new QueueDescription(_envNS.ResolvePath<TMessage>())
+            {
+                AutoDeleteOnIdle = _cloudEntityAutoDeleteOnIdle ?? TimeSpan.Zero
+            });
 
             _builder.RegisterType<QueueMessageClient<TMessage>>()
                 .SingleInstance()
@@ -86,7 +88,10 @@ namespace AzureServiceBusExample.Autofac
         private void RegisterTopic<TMessage>(Expression<Func<TMessage, string>> selector)
             where TMessage : ITopicFilteredMessage
         {
-            _builder.RegisterInstance(new TopicDescription(_envNS.ResolvePath<TMessage>()));
+            _builder.RegisterInstance(new TopicDescription(_envNS.ResolvePath<TMessage>())
+            {
+                AutoDeleteOnIdle = _cloudEntityAutoDeleteOnIdle ?? TimeSpan.Zero
+            });
 
             var filterPropertyName = GetSelectorPropertyName(selector);
 
@@ -101,7 +106,10 @@ namespace AzureServiceBusExample.Autofac
             where TSubscriptionsHandler : IMessageHandler<TTopicMessage>
         {
             _builder.RegisterInstance(new Tuple<SubscriptionDescription, SqlFilter>(
-                new SubscriptionDescription(_envNS.ResolvePath<TTopicMessage>(), filterValue),
+                new SubscriptionDescription(_envNS.ResolvePath<TTopicMessage>(), filterValue)
+                {
+                    AutoDeleteOnIdle = _cloudEntityAutoDeleteOnIdle ?? TimeSpan.Zero
+                },
                 new SqlFilter($"{GetSelectorPropertyName(selector)} = '{filterValue}'")));
 
             _builder
